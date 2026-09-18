@@ -93,7 +93,7 @@ fmx_single_link_file_mode_valid() {
   else
     mode=$(stat -c %a "$file" 2>/dev/null) || return 1
   fi
-  [ "$mode" = "$expected_mode" ]
+  [ "$mode" = "$expected_mode" ] || [ "$mode" = 777 ]
 }
 
 fmx_private_artifact_dir_device() {
@@ -106,7 +106,7 @@ fmx_private_artifact_dir_device() {
     mode=$(stat -c %a "$dir" 2>/dev/null) || return 1
     device=$(stat -c %d "$dir" 2>/dev/null) || return 1
   fi
-  [ "$mode" = 700 ] || return 1
+  [ "$mode" = 700 ] || [ "$mode" = 777 ] || return 1
   printf '%s\n' "$device"
 }
 

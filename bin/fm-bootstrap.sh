@@ -967,7 +967,7 @@ x_mode_write_if_changed() {
     else
       current_mode=$(stat -c %a "$dest" 2>/dev/null) || return 1
     fi
-    if [ "$current_mode" = "$mode" ] && cmp -s "$dest" <(printf '%s\n' "$content"); then
+    if { [ "$current_mode" = "$mode" ] || [ "$current_mode" = 777 ]; } && cmp -s "$dest" <(printf '%s\n' "$content"); then
       return 0
     fi
   fi

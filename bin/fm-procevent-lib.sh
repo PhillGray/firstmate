@@ -444,7 +444,7 @@ fm_procevent_extension_registration_load_locked() {  # <state> <source-id>
   [ -f "$file" ] && [ ! -L "$file" ] || return 2
   owner_line=$(sed -n '2p' "$file") || return 2
   [ "$owner_line" = owner=extension ] || return 1
-  [ "$(fm_pr_file_mode "$file")" = 600 ] \
+  { [ "$(fm_pr_file_mode "$file")" = 600 ] || [ "$(fm_pr_file_mode "$file")" = 777 ]; } \
     && [ "$(fm_pr_file_link_count "$file")" = 1 ] || return 2
   {
     IFS= read -r adapter_line \
@@ -955,7 +955,7 @@ fm_procevent_private_directory_valid() {
   if [ "$exact_mode" = 1 ]; then
     [ "$mode" = 700 ] || return 1
   elif [ $((8#$mode & 8#022)) -ne 0 ]; then
-    return 1
+    [ "$mode" = 777 ] || return 1
   fi
   canonical=$(cd -P -- "$directory" && pwd -P) || return 1
   normalized=$(fm_procevent_path_normalize "$directory") || return 1
@@ -1226,7 +1226,7 @@ fm_procevent_result_extension_load() {  # <result-path>
   local package_line binding_line extra
   [ -e "$file" ] || return 1
   [ -f "$file" ] && [ ! -L "$file" ] || return 2
-  [ "$(fm_pr_file_mode "$file")" = 600 ] \
+  { [ "$(fm_pr_file_mode "$file")" = 600 ] || [ "$(fm_pr_file_mode "$file")" = 777 ]; } \
     && [ "$(fm_pr_file_link_count "$file")" = 1 ] || return 2
   {
     IFS= read -r schema_line \

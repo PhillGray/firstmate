@@ -1,0 +1,13 @@
+[Unit]
+Description=FirstMate Watcher and Relay Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/mnt/c/AIOS/firstmate
+ExecStart=/bin/bash /mnt/c/AIOS/firstmate/start-watcher-loop.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

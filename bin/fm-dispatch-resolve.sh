@@ -91,9 +91,8 @@ CONFIG="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
 . "$SCRIPT_DIR/fm-brief-heading-lib.sh"
 
 CONFIDENCE_FLOOR=0.6
-# Default to Bittensor Subnet 92 (Decision Models) with fallback to TypeSafe
-DM_BASE=${DM_BASE:-https://api.decisionmodels.io}
-TS_BASE=${TS_BASE:-https://api.typesafe.ai}
+TS_MODEL=jev-latest
+TS_BASE=https://api.typesafe.ai
 TS_TIMEOUT=5
 DEFAULT_WHEN="No listed rule applies to this task."
 
@@ -121,39 +120,12 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-# ---- opt-in gate (Subnet 92 Decision Models preferred, with TypeSafe Jev fallback) ----
-ACTIVE_API_KEY=""
-RESOLVER_PROVIDER=""
-RESOLVER_BASE=""
-
-# 1. Check Subnet 92 (SN92 / Decision Models)
-SN92_KEY=${SN92_API_KEY:-${DECISIONMODELS_API_KEY:-}}
-if [ -z "$SN92_KEY" ]; then
-  SN92_KEY=$(fmx_env_get SN92_API_KEY "$FM_HOME/.env")
-fi
-if [ -z "$SN92_KEY" ]; then
-  SN92_KEY=$(fmx_env_get DECISIONMODELS_API_KEY "$FM_HOME/.env")
-fi
-
-if [ -n "$SN92_KEY" ]; then
-  ACTIVE_API_KEY="$SN92_KEY"
-  RESOLVER_PROVIDER="subnet92"
-  RESOLVER_BASE="$DM_BASE"
-elif [ -n "$TYPESAFE_API_KEY_PRIVATE" ]; then
-  ACTIVE_API_KEY="$TYPESAFE_API_KEY_PRIVATE"
-  RESOLVER_PROVIDER="typesafe"
-  RESOLVER_BASE="$TS_BASE"
-else
+# ---- opt-in gate ---------------------------------------------------------------
+if [ -z "$TYPESAFE_API_KEY_PRIVATE" ]; then
   TYPESAFE_API_KEY_PRIVATE=$(fmx_env_get TYPESAFE_API_KEY "$FM_HOME/.env")
-  if [ -n "$TYPESAFE_API_KEY_PRIVATE" ]; then
-    ACTIVE_API_KEY="$TYPESAFE_API_KEY_PRIVATE"
-    RESOLVER_PROVIDER="typesafe"
-    RESOLVER_BASE="$TS_BASE"
-  fi
 fi
-
-if [ -z "$ACTIVE_API_KEY" ]; then
-  echo "dispatch-resolve: off (SN92_API_KEY, DECISIONMODELS_API_KEY, or TYPESAFE_API_KEY absent from environment and $FM_HOME/.env)" >&2
+if [ -z "$TYPESAFE_API_KEY_PRIVATE" ]; then
+  echo "dispatch-resolve: off (TYPESAFE_API_KEY absent from the environment and $FM_HOME/.env)" >&2
   exit 0
 fi
 
@@ -235,12 +207,14 @@ missing_provider=$(jq -r '
 ' "$RULES" | while IFS=$'\t' read -r location harness; do
   if ! fm_quota_single_provider_for_harness "$harness" >/dev/null; then
     printf '%s\t%s\n' "$location" "$harness"
-    break
   fi
 done)
 if [ -n "$missing_provider" ]; then
-  IFS=$'\t' read -r location harness <<< "$missing_provider"
-  die "malformed rules file: $RULES_PATH - $location profiles whose harness lacks one authoritative provider family require provider: $harness"
+  missing_provider_detail=''
+  while IFS=$'\t' read -r location harness; do
+    missing_provider_detail="${missing_provider_detail:+$missing_provider_detail; }$location profiles whose harness lacks one authoritative provider family require provider: $harness"
+  done <<< "$missing_provider"
+  die "malformed rules file: $RULES_PATH - $missing_provider_detail"
 fi
 
 # ---- harness -> provider map, from the single owner in fm-quota-axi-lib.sh -----
@@ -332,23 +306,7 @@ else
 fi
 LAT_MS=null
 command -v curl >/dev/null 2>&1 || emit_error "curl not installed"
-
-  # Autonomous Dynamic Selection (Best of Both):
-  # - If provider is Subnet 92:
-  #   * Use s1-fast for short briefs (< 400 chars) or single rule checks (< 30ms latency)
-  #   * Use s1-pro for comprehensive multi-rule or detailed task briefs (< 80ms, deep calibration)
-  # - If provider is TypeSafe: use jev-latest
-  RESOLVER_MODEL="jev-latest"
-  if [ "$RESOLVER_PROVIDER" = "subnet92" ]; then
-    BRIEF_CHARS=$(wc -c < "$TASK_TEXT" 2>/dev/null || echo 0)
-    if [ "$BRIEF_CHARS" -lt 400 ] && [ "$RULE_COUNT" -le 2 ]; then
-      RESOLVER_MODEL="s1-fast"
-    else
-      RESOLVER_MODEL="s1-pro"
-    fi
-  fi
-
-  REQUEST=$(jq -n --rawfile brief "$TASK_TEXT" --arg project "$PROJECT" --arg model "$RESOLVER_MODEL" \
+  REQUEST=$(jq -n --rawfile brief "$TASK_TEXT" --arg project "$PROJECT" --arg model "$TS_MODEL" \
     --arg none_criterion "$DEFAULT_WHEN" --slurpfile rules "$RULES" '
     ($rules[0]) as $cfg |
     ($cfg.rules | to_entries | map({key: ("rule_" + ((.key + 1) | tostring)), value: .value.when}) | from_entries) as $criteria |
@@ -366,12 +324,12 @@ command -v curl >/dev/null 2>&1 || emit_error "curl not installed"
   never_send_check
   T0=$(fm_timing_now_ms)
   HTTP=$(printf '%s' "$REQUEST" | curl -sS --max-time "$TS_TIMEOUT" -o "$RESP_FILE" -w '%{http_code}' \
-    -X POST "$RESOLVER_BASE/v1/systemone" -H 'Content-Type: application/json' \
-    -H @/dev/fd/3 3< <(printf 'Authorization: Bearer %s\n' "$ACTIVE_API_KEY") \
+    -X POST "$TS_BASE/v1/systemone" -H 'Content-Type: application/json' \
+    -H @/dev/fd/3 3< <(printf 'Authorization: Bearer %s\n' "$TYPESAFE_API_KEY_PRIVATE") \
     --data-binary @- 2>/dev/null) || HTTP=000
   T1=$(fm_timing_now_ms)
   LAT_MS=$(( T1 - T0 ))
-  [ "$HTTP" = 200 ] || emit_error "http $HTTP from $RESOLVER_PROVIDER ($RESOLVER_MODEL) after ${LAT_MS} ms: $(head -c 200 "$RESP_FILE" 2>/dev/null | tr '\n' ' ')"
+  [ "$HTTP" = 200 ] || emit_error "http $HTTP after ${LAT_MS} ms: $(head -c 200 "$RESP_FILE" 2>/dev/null | tr '\n' ' ')"
 jq -e --slurpfile rules "$RULES" '
     (($rules[0].rules | to_entries | map("rule_" + ((.key + 1) | tostring))) + ["default"] | sort) as $choices |
     (.answers.rule.choice | type) == "string" and

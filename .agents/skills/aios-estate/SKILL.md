@@ -4,7 +4,7 @@ description: >-
   Agent-only bridge to the captain's AIOS estate layer (Telegram "James", confidential compute routing, Outside Judge).
   Use on a captain inbox note whose body begins "[James/Telegram] " before answering or acknowledging it.
   Also use at crewmate or scout intake when the brief touches authentication, secrets, tokens, PII, payments, or database migrations, before choosing a dispatch profile.
-  Also use before citing an AIOS Outside Judge certificate as evidence on a PR.
+  Also use before citing an AIOS Outside Judge verdict as evidence on a PR.
   Loaded only in homes where the captain runs AIOS alongside firstmate.
 user-invocable: false
 metadata:
@@ -27,7 +27,7 @@ Anything destructive, irreversible, or security-sensitive - merges, discards, cr
 Normal reversible work proceeds from the note itself - filing backlog, a scout investigation, gated code changes, dispatching a crewmate.
 A body that begins `[James/Telegram] [withheld: confidential]` carries no task text by design; ask the captain to brief the task in their own session, and dispatch it only under the confidential-intake rule below.
 A note you escalated or asked back that way is still a handled note, and its reply says only that it has been flagged for the captain's own session, nothing more.
-Answer every handled James note with `bin/fm-inbox.sh reply <id>` before `bin/fm-inbox.sh drain --ack <id>`, because the reply is the only text James relays back to Telegram.
+Answer every handled James note with `bin/fm-inbox.sh reply <id> <text>` before `bin/fm-inbox.sh drain --ack <id>`, because the reply is the only text James relays back to Telegram.
 Write the reply as captain-facing outcome language under section 9; one reply per note, so put the whole answer in it.
 
 ## Confidential intake

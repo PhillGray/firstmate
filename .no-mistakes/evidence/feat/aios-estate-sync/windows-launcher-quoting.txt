@@ -1,0 +1,35 @@
+Live drive of the Windows launchers through cmd.exe with a disposable 'wsl' shim first on PATH
+(shim resolution proven by 'where wsl' before any run, so nothing executes in the real home).
+
+######## base-start-watcher.bat ########
+===================================================
+Starting FirstMate Watcher Daemon (Relay + Fleet)...
+===================================================
+'while' is not recognized as an internal or external command,
+operable program or batch file.
+---- the argv wsl actually received ----
+SHIM-WSL-ARGV: -d Ubuntu -u gray -- bash -c cd /mnt/c/AIOS/firstmate
+
+######## target-start-watcher.bat ########
+===================================================
+Starting FirstMate Watcher Daemon (Relay + Fleet)...
+===================================================
+---- the argv wsl actually received ----
+SHIM-WSL-ARGV: -d Ubuntu -u gray -- bash -lc "cd /mnt/c/AIOS/firstmate && while true; do ./bin/fm-watch.sh; sleep 5; done"
+
+######## base-start-firstmate.bat ########
+===================================================
+Starting FirstMate (Primary Agent Session)...
+===================================================
+Warning: no stdin data received in 3s, proceeding without it. If piping from a slow command, redirect stdin explicitly: < /dev/null to skip, or wait longer.
+Error: Input must be provided either through stdin or as a prompt argument when using --print
+---- the argv wsl actually received ----
+SHIM-WSL-ARGV: -d Ubuntu -u gray -- bash -c cd /mnt/c/AIOS/firstmate
+
+######## target-start-firstmate.bat ########
+===================================================
+Starting FirstMate (Primary Agent Session)...
+===================================================
+---- the argv wsl actually received ----
+SHIM-WSL-ARGV: -d Ubuntu -u gray -- bash -lc "cd /mnt/c/AIOS/firstmate && claude"
+

@@ -1,0 +1,30 @@
+disposable FM_HOME: /tmp/aios-sn92.m9fmJR
+
+==== 1. a home holding ONLY the retired Subnet 92 credentials (env + $FM_HOME/.env) ====
+SN92_API_KEY=<redacted>
+DECISIONMODELS_API_KEY=<redacted>
+CHUTES_API_KEY=<redacted>
+TARGON_API_KEY=<redacted>
+SAYGM_API_KEY=<redacted>
+--- resolve a brief with those keys live in the environment too ---
+dispatch-resolve: off (TYPESAFE_API_KEY absent from the environment and /tmp/aios-sn92.m9fmJR/.env)
+resolver exit=0
+--- URLs the product requested: ---
+(none above means no network call at all)
+
+==== 2. the one supported opt-in (TYPESAFE_API_KEY) still resolves, and only to typesafe.ai ====
+dispatch-resolve:
+  status: clear
+  model: jev-latest   latency_ms: 26   tokens: 310/24
+  rule: rule_2 (The task is a trivial mechanical edit such as a rote rename,)   confidence: 0.91
+  probabilities: rule_1=0.05 rule_2=0.9 rule_3=0.03 default=0.02
+  note: rule matched
+  candidate: claude:haiku  provider=claude  scope=all_models  remaining=82%  spendPriority=0.74  runway=through_reset  -> eligible
+  profile: --harness 'claude' --model 'haiku' --effort 'low'
+resolver exit=0
+--- URLs the product requested: ---
+https://api.typesafe.ai/v1/systemone
+no decisionmodels.io request - Subnet 92 route is gone
+
+==== teardown ====
+removed /tmp/aios-sn92.m9fmJR

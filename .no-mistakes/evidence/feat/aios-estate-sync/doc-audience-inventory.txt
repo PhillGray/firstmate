@@ -1,0 +1,9 @@
+==== the tracked audience inventory, as shipped ====
+$ bin/fm-doc-audience-check.sh
+fm-doc-audience-check: ok surfaces=125 local_links=818
+exit=0
+
+==== adversarial: same checker, inventory with the aios-estate entry removed ====
+$ bin/fm-doc-audience-check.sh --inventory <inventory without the new skill>
+fm-doc-audience-check: unclassified: .agents/skills/aios-estate/SKILL.md
+exit=1

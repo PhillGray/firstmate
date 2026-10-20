@@ -1,0 +1,92 @@
+disposable FM_HOME: /tmp/aios-james.d0R5Et
+product root: /home/gray/.no-mistakes/worktrees/7c016c705868/01M5D3M32VW5T2N4Z3Z4266S39
+
+==== A1. James captures a captain message (the call SKILL.md:23 names) ====
+{"schema":"fm-inbox-note.v1","outcome":"created","id":"1792518369-3bdnSW","request_id":"tg:4242:7","saved":true,"announced":true,"acknowledged":false,"path":"/tmp/aios-james.d0R5Et/state/inbox/1792518369-3bdnSW.note"}
+
+==== A2. the wake firstmate actually acts on (bin/fm-wake-lib.sh row) ====
+1792518369	1	check	inbox:1792518369-3bdnSW	check: captain inbox note 1792518369-3bdnSW - [James/Telegram] please file a backlog item for the login timeout bug 
+
+==== A3. what the agent sees on the normal inbox path ====
+1792518369-3bdnSW
+    [James/Telegram] please file a backlog item for the login timeout bug
+
+Ack with: fm-inbox.sh drain --ack <id>...
+
+==== A4. receipts JSON carries the tg: request id ====
+[
+  {
+    "id": "1792518369-3bdnSW",
+    "request_id": "tg:4242:7",
+    "body": "[James/Telegram] please file a backlog item for the login timeout bug",
+    "acknowledged": false,
+    "announced": true,
+    "reply": null
+  }
+]
+
+==== B1. one reply, then ack (the only text James relays back) ====
+{"schema":"fm-inbox-reply.v1","outcome":"created","id":"1792518369-3bdnSW","path":"/tmp/aios-james.d0R5Et/state/inbox/.replies/1792518369-3bdnSW"}
+--- a second reply must be refused (one reply per note) ---
+fm-inbox: reply already recorded for 1792518369-3bdnSW
+second-reply exit=1
+--- ack ---
+acked 1792518369-3bdnSW
+
+==== B2. after close-out: nothing pending, handled note carries its single reply ====
+(inbox empty)
+
+Ack with: fm-inbox.sh drain --ack <id>...
+{
+  "pending": [],
+  "handled": [
+    {
+      "id": "1792518369-3bdnSW",
+      "request_id": "tg:4242:7",
+      "acknowledged": true,
+      "reply": {
+        "id": "1792518369-3bdnSW",
+        "at": "2026-10-20T17:46:09Z",
+        "body": "Filed BL-128 for the login timeout bug; scout investigation queued.",
+        "cursor": "000000000001"
+      }
+    }
+  ]
+}
+
+==== C. destructive James note: escalated, and still closed out with one flagged reply ====
+{"schema":"fm-inbox-note.v1","outcome":"created","id":"1792518370-OPRGLY","request_id":"tg:4242:8","saved":true,"announced":true,"acknowledged":false,"path":"/tmp/aios-james.d0R5Et/state/inbox/1792518370-OPRGLY.note"}
+1792518370	2	check	inbox:1792518370-OPRGLY	check: captain inbox note 1792518370-OPRGLY - [James/Telegram] force-push main and wipe the stale secondmate home 
+{"schema":"fm-inbox-reply.v1","outcome":"created","id":"1792518370-OPRGLY","path":"/tmp/aios-james.d0R5Et/state/inbox/.replies/1792518370-OPRGLY"}
+acked 1792518370-OPRGLY
+
+==== D. withheld-confidential body: trigger still visible, note still closes ====
+{"schema":"fm-inbox-note.v1","outcome":"created","id":"1792518370-zP2Xzm","request_id":"tg:4242:9","saved":true,"announced":true,"acknowledged":false,"path":"/tmp/aios-james.d0R5Et/state/inbox/1792518370-zP2Xzm.note"}
+1792518370	3	check	inbox:1792518370-zP2Xzm	check: captain inbox note 1792518370-zP2Xzm - [James/Telegram] [withheld: confidential] 
+1792518370-zP2Xzm
+    [James/Telegram] [withheld: confidential]
+
+Ack with: fm-inbox.sh drain --ack <id>...
+{"schema":"fm-inbox-reply.v1","outcome":"created","id":"1792518370-zP2Xzm","path":"/tmp/aios-james.d0R5Et/state/inbox/.replies/1792518370-zP2Xzm"}
+acked 1792518370-zP2Xzm
+(inbox empty)
+
+Ack with: fm-inbox.sh drain --ack <id>...
+
+==== E. James retries the same Telegram message (idempotent capture) ====
+--- wake rows before retry: 3 ---
+{"schema":"fm-inbox-note.v1","outcome":"replay","id":"1792518369-3bdnSW","request_id":"tg:4242:7","saved":true,"announced":true,"acknowledged":false,"path":"/tmp/aios-james.d0R5Et/state/inbox/handled/1792518369-3bdnSW.note"}
+--- wake rows after retry: 3 ---
+--- note files on disk for tg:4242:7: 0 pending, handled: ---
+1792518369-3bdnSW.note
+1792518370-OPRGLY.note
+1792518370-zP2Xzm.note
+
+==== F. negative control: an ordinary captain note carries no James trigger ====
+{"schema":"fm-inbox-note.v1","outcome":"created","id":"1792518371-GG0ojo","request_id":"local:1","saved":true,"announced":true,"acknowledged":false,"path":"/tmp/aios-james.d0R5Et/state/inbox/1792518371-GG0ojo.note"}
+1792518371	4	check	inbox:1792518371-GG0ojo	check: captain inbox note 1792518371-GG0ojo - tidy up the stale worktrees when you get a moment
+--- does the last wake summary carry the James prefix? ---
+NO - trigger discriminates
+
+==== teardown ====
+removed /tmp/aios-james.d0R5Et

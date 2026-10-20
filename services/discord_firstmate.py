@@ -324,6 +324,9 @@ def call_openai_api(system_prompt: str, prompt: str, model_name: str, api_key: s
         raise RuntimeError(f"OpenAI HTTP {resp.status_code}: {resp.text}")
     return resp.json()["choices"][0]["message"]["content"]
 
+class ConfidentialComputeBlocked(RuntimeError):
+    pass
+
 async def dispatch_step_inference(
     system_prompt: str,
     prompt: str,
@@ -337,22 +340,28 @@ async def dispatch_step_inference(
     if not is_sensitive and task_instruction:
         is_sensitive, reason = evaluate_privacy(task_instruction)
 
-    # 1. Sensitive Data Route: Auto-splice into Chutes TEE confidential enclave
+    # 1. Sensitive Data Route: Chutes TEE or not at all
     if is_sensitive:
+        chutes_key = os.getenv("CHUTES_API_KEY", "")
+        if not chutes_key:
+            raise ConfidentialComputeBlocked(f"Sensitive data detected ({reason}) and CHUTES_API_KEY is not set.")
+        try:
+            res = await asyncio.to_thread(call_chutes_api, system_prompt, prompt, "Qwen/Qwen3.6-27B-TEE", chutes_key)
+        except Exception as e:
+            raise ConfidentialComputeBlocked(f"Sensitive data detected ({reason}) and the Chutes TEE route failed: {e}") from e
         if status_notifier and "chutes_privacy_bypass" not in ANNOUNCED_BYPASSES:
             ANNOUNCED_BYPASSES.add("chutes_privacy_bypass")
             await status_notifier(
                 "privacy_splice",
-                f"🛡️ **[Confidential TEE Activated]** Sensitive data detected ({reason}). Routing through Chutes TEE enclave."
+                f"🛡️ **[Confidential Route]** Sensitive data detected ({reason}). Step answered by Chutes TEE-declared model."
             )
-        target_model = "Qwen/Qwen3.6-27B-TEE"
-        target_provider = "chutes"
-    else:
-        target_provider = CONFIG["provider"]
-        target_model = requested_model or CONFIG["model"]
+        return res, "Chutes TEE (Qwen3.6-27B-TEE)", True
+
+    target_provider = CONFIG["provider"]
+    target_model = requested_model or CONFIG["model"]
 
     # 2. Primary Route: Antigravity Google AI Pro subscription pool (unmetered quota)
-    if target_provider == "antigravity" and not is_sensitive:
+    if target_provider == "antigravity":
         try:
             res = await asyncio.to_thread(call_antigravity_cli, system_prompt, prompt, target_model)
             return res, f"Antigravity Pool ({target_model})", False
@@ -594,12 +603,16 @@ async def firstmate_dispatch(ctx, prompt: str):
             task_banned_keys=task_banned_keys
         )
 
-    result = await execute_firstmate_autonomous_mission(
-        captain_directive=prompt,
-        inference_caller=task_inference_caller,
-        status_notifier=status_notifier,
-        max_turns=8
-    )
+    try:
+        result = await execute_firstmate_autonomous_mission(
+            captain_directive=prompt,
+            inference_caller=task_inference_caller,
+            status_notifier=status_notifier,
+            max_turns=8
+        )
+    except ConfidentialComputeBlocked as blocked:
+        await ctx.send(f"🛑 **First Mate**: Task `{task_id}` blocked on confidential compute. {blocked} No other provider was used.")
+        return
 
     final_answer = result["final_output"]
     outcome_text = final_answer[:2500]

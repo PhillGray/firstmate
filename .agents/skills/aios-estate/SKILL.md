@@ -34,7 +34,7 @@ Write the reply as captain-facing outcome language under section 9; one reply pe
 ## Confidential intake
 
 When a brief touches authentication, secrets, tokens, PII, payments, or database migrations, the captain's AIOS policy is to run the work on TEE-declared compute wherever that route is available.
-A TEE route means exactly one thing here: a dispatch profile in `config/crew-dispatch.json` whose model id ends in `-TEE` and is served through the Chutes endpoint (`llm.chutes.ai`).
+A TEE route means exactly one thing here: a dispatch profile in `config/crew-dispatch.json` whose `provider` is `chutes` and whose model id ends in `-TEE`.
 That is the profile's own declaration and not hardware attestation anyone has checked, so never describe TEE routing to the captain as verified.
 Prefer such a profile when one matches the brief, resolved under `quota-array-dispatch` like any other matched array.
 If no profile meets that test, neither drop the task nor dispatch it on a frontier harness on your own judgment: escalate once to the captain under section 9, name the sensitive trigger the brief touched, and wait for the captain's explicit harness choice for that task.

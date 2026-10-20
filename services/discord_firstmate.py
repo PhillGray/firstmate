@@ -547,7 +547,7 @@ async def firstmate_dispatch(ctx, prompt: str):
     except Exception as jev_e:
         print(f"[JEV RESOLVE ERROR]: {jev_e}", flush=True)
 
-    jev_desc = f"**⚡ Subnet 92 Dispatch:** `{jev_line}`\n" if jev_line else ""
+    jev_desc = f"**⚡ Typed Dispatch:** `{jev_line}`\n" if jev_line else ""
 
     # Send First Mate Liaison Intake Embed
     init_embed = discord.Embed(
@@ -681,11 +681,11 @@ async def resolve_cmd(ctx, *, brief_text: str = ""):
             os.remove(tmp_path)
         out_text = stdout.decode("utf-8")
         embed = discord.Embed(
-            title="⚡ Subnet 92 (REAX) Decision Dispatch Resolution",
+            title="⚡ Typed Dispatch Resolution (fm-dispatch-resolve)",
             description=f"```yaml\n{out_text[:1900]}\n```",
             color=discord.Color.teal()
         )
-        embed.set_footer(text="Bittensor Subnet 92 • Decision Models (s1-fast / s1-pro) • Sub-second Typed Dispatch")
+        embed.set_footer(text="bin/fm-dispatch-resolve.sh (TypeSafe Jev, opt-in)")
         await ctx.send(embed=embed)
     except Exception as e:
         await ctx.send(f"⚠️ **Dispatch Resolution Error:** `{e}`")
@@ -711,9 +711,7 @@ async def check_updates_cmd(ctx):
                 f"**pstack (Lauren's stack):** `v{pstack_ver}`\n"
                 f"• Skills: `/poteto-mode`, `/architect`, `/correct` monitored\n\n"
                 f"**FirstMate Fleet:** `commit {firstmate_ref}`\n"
-                f"• Path skew: zero\n\n"
                 f"**t3code:** Checked against npm registry\n\n"
-                f"**Decision Models (Subnet 92):** `s1-fast` & `s1-pro` active"
             ),
             color=discord.Color.blue()
         )
@@ -813,9 +811,25 @@ async def on_command_error(ctx, error):
     else:
         print(f"[DISCORD ERROR]: {error}", flush=True)
 
+def allowed_user_ids(raw=None):
+    """Parse DISCORD_ALLOWED_USER_IDS (comma-separated numeric ids). Invalid entries are ignored."""
+    raw = os.getenv("DISCORD_ALLOWED_USER_IDS", "") if raw is None else raw
+    return {int(p.strip()) for p in raw.split(",") if p.strip().isdigit()}
+
+
+def is_user_allowed(user_id, allowed):
+    """Fail closed: an empty allow-list refuses everyone."""
+    return bool(allowed) and isinstance(user_id, int) and user_id in allowed
+
+
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
+        return
+    # Every command path (including the CommandNotFound fallback into firstmate_dispatch,
+    # which can reach execute_shell) runs through process_commands, so gate it here.
+    if not is_user_allowed(getattr(message.author, "id", None), allowed_user_ids()):
+        print(f"[DISCORD MSG] Ignored sender {getattr(message.author, 'id', '?')} (not in DISCORD_ALLOWED_USER_IDS)", flush=True)
         return
     print(f"[DISCORD MSG] Author: {message.author}, Channel: {message.channel}, Content: {message.content[:80]}", flush=True)
     await bot.process_commands(message)

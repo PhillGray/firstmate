@@ -1,0 +1,63 @@
+The brief the resolver is given (a database-migration task - an aios-estate confidential trigger):
+# Task
+
+## Captain's intent
+Add a users table migration that adds a hashed password column.
+
+## Firstmate spec
+Write the migration and its rollback, then run it against the dev database.
+
+Typed resolution is on (TYPESAFE_API_KEY set); the typesafe.ai call and quota-axi are served by
+disposable sandbox stubs, the resolver and its ranking are the real bin/fm-dispatch-resolve.sh.
+
+----- A. TEE-suffixed profile first, with a provider the quota snapshot measures -----
+dispatch-resolve:
+  status: clear
+  model: jev-1.13.0   latency_ms: 9   tokens: 400/30
+  rule: rule_1 (Work touching authentication, secrets, tokens, PII, payments)   confidence: 0.95
+  probabilities: rule_1=0.95 rule_2=0.03 default=0.02
+  note: rule matched
+  candidate: codex:gpt-5.6-sol-TEE  provider=codex  scope=all_models  remaining=31%  spendPriority=-0.1649  runway=through_reset  -> eligible
+  candidate: claude:opus  provider=claude  scope=all_models  remaining=79%  spendPriority=-0.4627  runway=through_reset  -> eligible
+  profile: --harness 'codex' --model 'gpt-5.6-sol-TEE'
+
+----- B. TEE-suffixed profile declaring provider chutes, which the quota snapshot does not carry -----
+dispatch-resolve:
+  status: clear
+  model: jev-1.13.0   latency_ms: 10   tokens: 400/30
+  rule: rule_1 (Work touching authentication, secrets, tokens, PII, payments)   confidence: 0.95
+  probabilities: rule_1=0.95 rule_2=0.03 default=0.02
+  note: rule matched
+  note: 1 eligible candidate(s) unranked (chutes)
+  candidate: pi:chutes/deepseek-v3-TEE  provider=chutes  -> eligible, unranked: provider chutes not in the quota snapshot: disclosed uncertainty
+  candidate: claude:opus  provider=claude  scope=all_models  remaining=79%  spendPriority=-0.4627  runway=through_reset  -> eligible
+  profile: --harness 'claude' --model 'opus'
+
+----- C. ADVERSARIAL - the rule's ONLY profile is an unrankable TEE route: must not silently fall to frontier compute -----
+dispatch-resolve:
+  status: escalate
+  model: jev-1.13.0   latency_ms: 10   tokens: 400/30
+  rule: rule_1 (Work touching authentication, secrets, tokens, PII, payments)   confidence: 0.95
+  probabilities: rule_1=0.95 rule_2=0.03 default=0.02
+  reason: no rankable eligible candidate
+  note: rule matched
+  candidate: pi:chutes/deepseek-v3-TEE  provider=chutes  -> eligible, unranked: provider chutes not in the quota snapshot: disclosed uncertainty
+
+----- D. .env plumbing after the Discord bridge retirement: this home's .env is .env.example verbatim -----
+FMX_PAIRING_TOKEN=your_fmx_pairing_token_here
+OPENAI_API_KEY=your_openai_key_here
+GEMINI_API_KEY=your_gemini_key_here
+GITHUB_TOKEN=your_github_token_here
+TYPESAFE_API_KEY=sandbox-typesafe-key
+# no TYPESAFE_API_KEY in the environment - it must come from .env:
+dispatch-resolve:
+  status: clear
+  model: jev-1.13.0   latency_ms: 10   tokens: 400/30
+  rule: rule_1 (Work touching authentication, secrets, tokens, PII, payments)   confidence: 0.95
+  probabilities: rule_1=0.95 rule_2=0.03 default=0.02
+  note: rule matched
+  candidate: claude:opus  provider=claude  scope=all_models  remaining=79%  spendPriority=-0.4627  runway=through_reset  -> eligible
+  profile: --harness 'claude' --model 'opus'
+# and with no .env at all:
+dispatch-resolve: off (TYPESAFE_API_KEY absent from the environment and /tmp/aios-tee.NrFc6w/home/.env)
+exit=0

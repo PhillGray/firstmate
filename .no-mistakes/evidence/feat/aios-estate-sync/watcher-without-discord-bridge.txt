@@ -1,0 +1,34 @@
+After the Discord bridge was removed, start-watcher.bat / start-watcher-loop.sh /
+firstmate-watcher.service start exactly one process: bin/fm-watch.sh. Driven here in a
+disposable home with a stub tmux, so no real tmux session or operator state is reachable.
+
+----- 1. steady state: the watcher loop on a quiet home, 20s -----
+$ FM_POLL=2 bin/fm-watch.sh
+Terminated
+exit=124 (124 = our 20s timeout stopping the intentional loop; no error, no output)
+
+# watcher bookkeeping written in the disposable home:
+.inactive-outcome-reconcile
+.last-check
+.last-heartbeat
+.last-watcher-beat
+.secondmate-liveness-tick
+.watcher-down
+home-summary.json
+terminal-outcomes
+
+----- 2. a Telegram note from James arrives and the watcher surfaces it -----
+$ printf %s "[James/Telegram] Check whether the nightly backup finished." | bin/fm-inbox.sh note --request-id tg:4411902:901 -
+queued 1792690300-4RIamk
+  [James/Telegram] Check whether the nightly backup finished.
+  firstmate will pick this up at its next check.
+
+$ FM_POLL=2 bin/fm-watch.sh
+check: rearm-resurface
+exit=0
+
+# the queued James note waiting for firstmate's own drain:
+1792690301	1	check	inbox:1792690300-4RIamk	check: captain inbox note 1792690300-4RIamk - [James/Telegram] Check whether the nightly backup finished.
+
+# tmux calls made across both passes (a home with no crew touches no session):
+(none)

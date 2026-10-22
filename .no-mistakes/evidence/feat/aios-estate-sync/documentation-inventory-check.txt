@@ -1,0 +1,16 @@
+The repository's own documentation-inventory consumer, run over the branch as shipped.
+It classifies every tracked doc surface and resolves every local link in them,
+so a dangling reference left by the retired Discord bridge would fail here.
+
+$ bin/fm-doc-audience-check.sh
+fm-doc-audience-check: ok surfaces=125 local_links=818
+exit=0
+
+ADVERSARIAL - prove the gate is real: same check against an inventory with the new
+aios-estate skill surface removed.
+$ bin/fm-doc-audience-check.sh --inventory <inventory-without-aios-estate>
+fm-doc-audience-check: unclassified: .agents/skills/aios-estate/SKILL.md
+exit=1
+
+The aios-estate surface's classification in the shipped inventory:
+  {'path': '.agents/skills/aios-estate/SKILL.md', 'audience': 'agent-runtime'}

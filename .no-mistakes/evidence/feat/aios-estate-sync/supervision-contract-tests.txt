@@ -1,0 +1,50 @@
+The restored upstream supervisor contract, exercised by upstream's own supervision suites
+in this fork's worktree.
+
+$ bin/fm-test-run.sh tests/fm-supervision-instructions.test.sh tests/fm-supervision-events.test.sh
+  -> 20/20 ok, exit 0
+
+$ bin/fm-test-run.sh tests/fm-supervision-host.test.sh
+  -> exactly one case failed, in a 667s serial run; the tail of that run:
+
+  ok - host: an attended wake the branch may take is handled on the engine, and its routine outcome never wakes main
+  ok - host: an attended captain outcome wakes main once and stays in its drain until main acknowledges it
+  ok - host: a captain outcome recorded after the captain left waits for the return, then reaches main's drain
+  ok - host: a quiet record without its daemon is a present captain, so outcomes and decisions reach main
+  ok - host: an attended decision close stays main's exactly as the plain arm delivers it
+  ok - host: an off written while the host is parked sends the next attended close to main, naming the opt-out
+  ok - host: a main-only pass-through leaves the successor watcher running and the close undelivered for main
+  ok - host: an attended close whose main session cannot be identified reaches main and runs no engine turn
+  ok - host: a decision close accepted away whose turn starts attended still reaches main unchanged
+  ok - host: an attended close whose task turns main-only before its turn still reaches main unchanged
+  ok - host+hook: an attended main-only pass-through rewakes main and keeps its successor watcher
+  ok - host+hook: a captain outcome beside a quiet record rewakes the present captain with no away note
+  ok - host+hook: a Claude home without config/supervision-host runs the host at the default engine, and an off file restores the plain arm
+  ok - host+hook: a close that turns main-only at its turn rewakes main and keeps its successor watcher
+  ok - host+hook: the successor a close that turns main-only at its turn leaves for main survives the hook's process group teardown
+  ok - host+hook: failed at-turn downtime write notifies main despite a healthy successor
+  ok - host+hook: a successor close that lands during main's turn is delivered at the next turn end
+  ok - host+hook: the successor a pass-through leaves for main survives the hook's process group teardown
+  ok - host+hook: the next park takes over the cycle a main-only pass-through left, so one arm owns it
+  ok - host+hook: a park stopped mid take-over leaves the take-over to the next park
+  ok - host+hook: a successor that cannot be recorded is stopped, and main's next turn end arms a fresh cycle
+  ok - host: a primary with no verified dialog mirror keeps every attended close on main, and its away posture still runs
+  ok - host: each wake carries the captain's dialog since the last wake, without operational input
+  ok - host: the dialog mirror, its feed, and the wake file are owner-only
+  not ok - the watcher's downtime resurface did not reach main: watcher: started pid=704564 (beacon fresh)
+  FM_TEST_END 2026-10-22T17:20:10Z tests/fm-supervision-host.test.sh exit=1 duration_ms=667525 gate_skip=false
+  FM_TEST_SUMMARY total=1 failed=1 skipped_gate=0 duration_ms=667606
+  FM_TEST_SUMMARY_FAMILY family=afk count=1 duration_ms=667525 failed=1
+  FM_TEST_SLOWEST rank=1 script=tests/fm-supervision-host.test.sh duration_ms=667525
+  EXIT=1
+  
+  [exited with code 0]
+
+That failing case re-run in isolation on the same host, 3x, and then paired with the case
+that immediately precedes it in the suite to rule out an ordering interaction:
+  test_undelivered_dialog_is_fed_again_on_the_next_turn      3/3 ok
+  test_dialog_bearing_files_are_owner_only + the above       2/2 ok
+
+The assertion is tests/fm-supervision-host.test.sh:1847, a wait_until 150 (15s) poll for a
+watcher downtime resurface - timing-sensitive, and it missed its window under the load of
+the full serial run on this WSL2 host rather than reporting a product defect.

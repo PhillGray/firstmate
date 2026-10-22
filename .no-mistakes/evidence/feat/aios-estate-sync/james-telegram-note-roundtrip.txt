@@ -1,0 +1,75 @@
+
+----- 1. James relays a Telegram message: the capture call the skill names -----
+$ printf %s "[James/Telegram] File a backlog item for API rate limiting." | bin/fm-inbox.sh note --request-id tg:4411902:881 --json -
+{"schema":"fm-inbox-note.v1","outcome":"created","id":"1792690135-KlMrut","request_id":"tg:4411902:881","saved":true,"announced":true,"acknowledged":false,"path":"/tmp/aios-james2.MMVnBp/state/inbox/1792690135-KlMrut.note"}
+
+----- 2. the wake firstmate actually receives (state/.wake-queue) - the skill's trigger -----
+1792690135	1	check	inbox:1792690135-KlMrut	check: captain inbox note 1792690135-KlMrut - [James/Telegram] File a backlog item for API rate limiting.
+
+----- 3. the same prefix again on the normal drain path -----
+$ bin/fm-inbox.sh drain
+1792690135-KlMrut
+    [James/Telegram] File a backlog item for API rate limiting.
+
+Ack with: fm-inbox.sh drain --ack <id>...
+
+----- 4. the captain-facing answer James relays back to Telegram -----
+$ bin/fm-inbox.sh reply 1792690135-KlMrut 'Filed as a backlog item. Nothing dispatched yet.'
+replied 1792690135-KlMrut
+$ bin/fm-inbox.sh drain --ack 1792690135-KlMrut
+acked 1792690135-KlMrut
+
+----- 5. receipts: the note, its tg request id, and the recorded reply -----
+$ bin/fm-inbox.sh receipts --all-handled --all-replies
+{
+    "schema": "fm-inbox-receipts.v1",
+    "home": "7c016c705868/01M5J8FZSJACSMA72T3RAVYAN4",
+    "generated": "2026-10-22T17:28:55Z",
+    "pending": [],
+    "handled": [
+        {
+            "id": "1792690135-KlMrut",
+            "at": "2026-10-22T17:28:55Z",
+            "source": "text",
+            "request_id": "tg:4411902:881",
+            "body": "[James/Telegram] File a backlog item for API rate limiting.",
+            "acknowledged": true,
+            "announced": true,
+            "reply": {
+                "id": "1792690135-KlMrut",
+                "at": "2026-10-22T17:28:55Z",
+                "body": "Filed as a backlog item. Nothing dispatched yet.",
+                "cursor": "000000000001"
+            }
+        }
+    ],
+    "replies": [
+        {
+            "id": "1792690135-KlMrut",
+            "at": "2026-10-22T17:28:55Z",
+            "body": "Filed as a backlog item. Nothing dispatched yet.",
+            "cursor": "000000000001"
+        }
+    ],
+    "reply_cursor": "000000000001",
+    "omitted": []
+}
+
+----- 6. ADVERSARIAL - James retries the same tg request id (duplicate Telegram delivery) -----
+$ printf %s "[James/Telegram] File a backlog item for API rate limiting." | bin/fm-inbox.sh note --request-id tg:4411902:881 --json -
+{"schema":"fm-inbox-note.v1","outcome":"replay","id":"1792690135-KlMrut","request_id":"tg:4411902:881","saved":true,"announced":true,"acknowledged":false,"path":"/tmp/aios-james2.MMVnBp/state/inbox/handled/1792690135-KlMrut.note"}
+# outcome=replay, same note id, and the wake queue is unchanged:
+1792690135	1	check	inbox:1792690135-KlMrut	check: captain inbox note 1792690135-KlMrut - [James/Telegram] File a backlog item for API rate limiting.
+# notes on disk: 1
+
+----- 7. ADVERSARIAL - a second reply on the same note is refused (one reply per note) -----
+$ bin/fm-inbox.sh reply 1792690135-KlMrut 'a second answer'
+fm-inbox: reply already recorded for 1792690135-KlMrut
+exit=1
+
+----- 8. ADVERSARIAL - trigger precision: withheld-confidential, a 100-byte-truncated body, and an ordinary captain note -----
+# wake summaries firstmate sees (only rows beginning with the prefix after the dash fire the skill):
+check: captain inbox note 1792690135-KlMrut - [James/Telegram] File a backlog item for API rate limiting.
+check: captain inbox note 1792690135-KbIKN0 - [James/Telegram] [withheld: confidential]
+check: captain inbox note 1792690135-M7QJPH - [James/Telegram] rotate the production database credentials and rotate the production database crede
+check: captain inbox note 1792690135-PoUp6x - Review the quarterly fleet report; James mentioned it on Telegram.
